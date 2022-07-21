@@ -1,1 +1,2 @@
-from .parser import *
+from .reader import *
+from .puppet import *
