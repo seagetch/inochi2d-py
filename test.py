@@ -4,7 +4,7 @@ from OpenGL import GL, GLU
 from inochi2d.api import *
 import ctypes
 
-WINDOW_WIDTH = 800
+WINDOW_WIDTH = 600
 WINDOW_HEIGHT = 800
 
 if SDL_Init(SDL_INIT_VIDEO) != 0:
@@ -53,9 +53,14 @@ inInit(curr_time)
 puppet = inPuppetLoad("./Aka-working.inx")
 
 inViewportSet(WINDOW_WIDTH, WINDOW_HEIGHT)
+print("viewport_get=%f,%f"%inViewportGet())
 camera = inCameraGetCurrent()
 inCameraSetZoom(camera, 0.25)
+print("zoom=%f"%inCameraGetZoom(camera))
 inCameraSetPosition(camera, 0., 0.)
+print("position=%f,%f"%inCameraGetPosition(camera))
+
+print("real_size=%f,%f"%inCameraGetRealSize(camera))
 
 ev = SDL_Event()
 isrunning = True
