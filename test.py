@@ -11,7 +11,6 @@ if SDL_Init(SDL_INIT_VIDEO) != 0:
     print(SDL_GetError())
     exit(-1)
 
-# Set up OpenGL context
 SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
@@ -42,26 +41,22 @@ if not window:
 
 ctx = SDL_GL_CreateContext(window)
 
-SDL_GL_MakeCurrent(window, ctx);
+SDL_GL_MakeCurrent(window, ctx)
 SDL_GL_SetSwapInterval(1); # Enable VSync
-
-print("Here")
 
 @ctypes.CFUNCTYPE(ctypes.c_double)
 def curr_time():
     return SDL_GetTicks() * 0.001
 
 inInit(curr_time)
-print("Here")
+
 puppet = inPuppetLoad("./Aka-working.inx")
 
-print("Here")
 inViewportSet(WINDOW_WIDTH, WINDOW_HEIGHT)
 camera = inCameraGetCurrent()
-inCameraSetZoom(camera, 0.3)
+inCameraSetZoom(camera, 0.25)
 inCameraSetPosition(camera, 0., 0.)
 
-print("Here")
 ev = SDL_Event()
 isrunning = True
 while isrunning:
@@ -69,8 +64,11 @@ while isrunning:
         if ev.type == SDL_QUIT:
             isrunning = not isrunning
 
-    GL.glClearColor(0, 0, 0, 1)
-    GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+    try:
+        GL.glClearColor(0., 0., 0., 1.)
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+    except GL.GLError as e:
+        pass
 
     inSceneBegin()
     inPuppetUpdate(puppet)
@@ -80,6 +78,7 @@ while isrunning:
 
     SDL_GL_SwapWindow(window)
     SDL_Delay(10)
+
 
 inCleanup()
 
