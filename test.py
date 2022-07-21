@@ -61,8 +61,6 @@ camera = inCameraGetCurrent()
 inCameraSetZoom(camera, 0.3)
 inCameraSetPosition(camera, 0., 0.)
 
-inSceneBegin()
-
 print("Here")
 ev = SDL_Event()
 isrunning = True
@@ -71,17 +69,18 @@ while isrunning:
         if ev.type == SDL_QUIT:
             isrunning = not isrunning
 
-#        GL.glClearColor(0, 0, 0, 1)
-#        GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+    GL.glClearColor(0, 0, 0, 1)
+    GL.glClear(GL.GL_COLOR_BUFFER_BIT)
 
+    inSceneBegin()
     inPuppetUpdate(puppet)
     inPuppetDraw(puppet)
+    inSceneEnd()
     inSceneDraw(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT)
 
     SDL_GL_SwapWindow(window)
     SDL_Delay(10)
 
-inSceneEnd()
 inCleanup()
 
 SDL_GL_DeleteContext(ctx)
