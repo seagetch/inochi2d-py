@@ -1,6 +1,8 @@
+import platform
 from sdl2 import *
 from OpenGL import GL, GLU
 from inochi2d import *
+import ctypes
 
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 800
@@ -20,14 +22,13 @@ SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
 
-## Linux>
-# Don't disable compositing on Linux
-SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, b"0")
+if platform.uname()[0] == "Linux":
+    # Don't disable compositing on Linux
+    SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, b"0")
 
-# We *always* want to use EGL, especially if we want to pass textures around via DMABUF.
-#SDL_SetHint(SDL_HINT_VIDEO_X11_FORCE_EGL, b"1")
-SDL_SetHint(SDL_HINT_VIDEO_EGL_ALLOW_TRANSPARENCY, b"1")
-## <Linux
+    # We *always* want to use EGL, especially if we want to pass textures around via DMABUF.
+#    SDL_SetHint(SDL_HINT_VIDEO_X11_FORCE_EGL, b"1") # causes crash when inInit is executed.
+    SDL_SetHint(SDL_HINT_VIDEO_EGL_ALLOW_TRANSPARENCY, b"1")
 
 window = SDL_CreateWindow(
     b"Aka",
@@ -46,7 +47,11 @@ SDL_GL_SetSwapInterval(1); # Enable VSync
 
 print("Here")
 
-inInit(SDL_GetTicks)
+@ctypes.CFUNCTYPE(ctypes.c_double)
+def curr_time():
+    return SDL_GetTicks() * 0.001
+
+inInit(curr_time)
 print("Here")
 puppet = inPuppetLoad("./Aka-working.inx")
 

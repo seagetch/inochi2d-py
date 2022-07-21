@@ -1,5 +1,12 @@
 import ctypes
-inochi2d=ctypes.CDLL("libinochi2d-c.so")
+import platform
+
+if platform.uname()[0] == "Windows":
+    inochi2d = ctypes.CDLL("libinochi2d-c.dll")
+elif platform.uname()[0] == "Linux":
+    inochi2d = ctypes.CDLL("libinochi2d-c.so")
+else:
+    pass
 
 inochi2d.inInit.restype = None
 inInit = inochi2d.inInit
@@ -11,7 +18,7 @@ def inPuppetLoad(name):
     puppet = inochi2d.inPuppetLoad(name_bytes)
     return puppet
 
-#inochi2d.inViewportSet.argtypes = (ctypes.c_float, ctypes.c_float)
+inochi2d.inViewportSet.argtypes = (ctypes.c_int, ctypes.c_int)
 inViewportSet = inochi2d.inViewportSet
 
 inochi2d.inCameraSetZoom.argtypes = [ctypes.c_void_p, ctypes.c_float]
