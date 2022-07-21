@@ -1,1 +1,0 @@
-from .inochi2d import *
