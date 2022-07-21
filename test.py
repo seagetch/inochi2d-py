@@ -1,7 +1,7 @@
 import platform
 from sdl2 import *
 from OpenGL import GL, GLU
-from inochi2d import *
+from inochi2d.api import *
 import ctypes
 
 WINDOW_WIDTH = 800
