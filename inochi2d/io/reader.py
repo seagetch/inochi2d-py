@@ -4,15 +4,11 @@ import struct
 import json
 from PIL import Image
 
+from .puppet import *
+
 MAGIC_BYTES = b'TRNSRTS\x00'
 TEX_SECTION = b"TEX_SECT"
 EXT_SECTION = b"EXT_SECT"
-
-class Puppet:
-    def __init__(self, puppet_json, textures, exts):
-        self.puppet_json = puppet_json
-        self.textures    = textures
-        self.exts        = exts
 
 class FormatError(Exception):
     def __init__(self, msg):
@@ -73,7 +69,7 @@ def _load_inp(data):
     except InvalidSectionError as e:
         pass
     
-    return Puppet(puppet_json, slots, exts)
+    return PuppetData(puppet_json, slots, exts)
         
 
 def load(filename):
