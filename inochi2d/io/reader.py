@@ -33,36 +33,36 @@ def _read_block(stream, data_len = None):
     raw_data = struct.unpack(">%ds"%len(raw_data), raw_data)
     return raw_data[0]
 
-def _load_json(data):
+def load_json(stream):
     raise FormatError("Not support JSON format yet.")
 
-def _load_inx(data):
-    return _load_inp(data)
+def load_inx(stream):
+    return load_inp(stream)
 
 
-def _load_inp(data):
-    _verify(data, MAGIC_BYTES)
+def load_inp(stream):
+    _verify(stream, MAGIC_BYTES)
 
-    puppet_json = json.loads(_read_block(data).decode('utf-8'))
+    puppet_json = json.loads(_read_block(stream).decode('utf-8'))
     
-    _verify(data, TEX_SECTION)
-    slots_len = _read_size(data)
+    _verify(stream, TEX_SECTION)
+    slots_len = _read_size(stream)
     slots = []
     for i in range(slots_len):
-        texture_len = _read_size(data)
-        texture_type = data.read(1)
-        texture = _read_block(data, texture_len)
+        texture_len = _read_size(stream)
+        texture_type = stream.read(1)
+        texture = _read_block(stream, texture_len)
         tex_stream = io.BytesIO(texture)
         img = Image.open(tex_stream)
         slots.append(img)
     
     exts = {}
     try:
-        _verify(data, EXT_SECTION)
-        section_len = _read_size(data)
+        _verify(stream, EXT_SECTION)
+        section_len = _read_size(stream)
         for i in range(section_len):
-            section_name = _read_block(data).decode('utf-8')
-            payload = _read_block(data)
+            section_name = _read_block(stream).decode('utf-8')
+            payload = _read_block(stream)
             exts[section_name] =payload
     except IOError as e:
         pass
@@ -77,10 +77,10 @@ def load(filename):
     with open(filename, 'rb') as f:
         data = f
         if ext == ".json":
-            return _load_json(data)
+            return load_json(data)
         elif ext == ".inx":
-            return _load_inx(data)
+            return load_inx(data)
         elif ext == ".inp":
-            return _load_inp(data)
+            return load_inp(data)
         else:
             raise FormatError("Unknown file format '%s'"%ext)
