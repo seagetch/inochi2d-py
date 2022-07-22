@@ -2,7 +2,7 @@ import ctypes
 import platform
 
 if platform.uname()[0] == "Windows":
-    inochi2d = ctypes.CDLL("libinochi2d-c.dll")
+    inochi2d = ctypes.CDLL("inochi2d-c.dll")
 elif platform.uname()[0] == "Linux":
     inochi2d = ctypes.CDLL("libinochi2d-c.so")
 else:
