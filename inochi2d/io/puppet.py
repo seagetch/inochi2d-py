@@ -17,15 +17,24 @@ class PuppetData:
         self.root        = puppet_json
         
         self._nodes = []
-        def collect_nodes(node):
-            if not isinstance(node, dict):
-                return
-            self._nodes.append(node)
-            if node.get("children"):
-                for child in node.get("children"):
-                    collect_nodes(child)
-        collect_nodes(self.root.get("nodes"))
-    
+        self.collect_nodes(self.root.get("nodes"))
+
+    def collect_nodes(self, node):
+        if not isinstance(node, dict):
+            return
+        self._nodes.append(node)
+        if node.get("children"):
+            for child in node.get("children"):
+                self.collect_nodes(child)
+
+    def exclude_nodes(self, node):
+        if not isinstance(node, dict):
+            return
+        self._nodes.remove(node)
+        if node.get("children"):
+            for child in node.get("children"):
+                self.exclude_nodes(child)
+        
     def nodes(self, name=None, uuid=None):
         return _resources(self, self._nodes, "nodes", NodeData, name, uuid)
     
@@ -46,19 +55,26 @@ class PuppetData:
         parent.get("children").append(node)
         
         # Updating _nodes
-        new_puppet._nodes.append(node)
+        
+        new_puppet.collect_nodes(node)
         
         # Validating uniqueness of the uuid
         # Updating UUID, and maintain links if needed.
 
         # Updating texture slot
         if new_puppet != old_puppet:
-            index = len(new_puppet.textures)
-            node_textures = node.get("textures")
-            if node_textures:
-                for i, tex in enumerate(node_textures):
-                    new_puppet.textures.append(old_puppet.textures[tex])
-                    node.get("textures")[i] = index + i
+            def add_texture_recur(new_puppet, node):
+                index = len(new_puppet.textures)
+                node_textures = node.get("textures")
+                if node_textures:
+                    for i, tex in enumerate(node_textures):
+                        new_puppet.textures.append(old_puppet.textures[tex])
+                        node.get("textures")[i] = index + i
+                children = node.get("children")
+                if children is not None:
+                    for child in children:
+                        add_texture_recur(new_puppet, child)
+            add_texture_recur(new_puppet, node)
 
     def move_node(self, parent, node, new_parent):
         new_puppet = self
@@ -78,10 +94,12 @@ class PuppetData:
         if parent_root == new_parent_root:
             return
 
+        if old_puppet is not None:
+            old_puppet.remove_node(parent, node)
         new_puppet.add_node(new_parent, node)
-        old_puppet.remove_node(parent, node)
     
     def remove_node(self, parent, node):
+        # Updating json information
         puppet = self
         child_puppet = self
         if isinstance(parent, NodeData):
@@ -93,21 +111,46 @@ class PuppetData:
         if puppet != child_puppet:
             return
         parent.get("children").remove(node)
-        new_puppet._nodes.remove(node)
+
+        #Updating _nodes
+        puppet.exclude_nodes(node)
 
     def param(self, name=None, uuid=None):
         res_type = "param"
         return _resources(self, self.root.get(res_type), res_type, ParamData, name, uuid)
     
     def add_param(self, param):
+        if isinstance(param, ParamData):
+            param = param.root
         # Adding param to puppet
-        # Validating all link are valid (by referring uuid)
-        pass
+        params = self.root.get("param")
+        if params is not None:
+            params.add(param)
+        param = ParamNode.from_json(self, param)
+        return param
     
     def remove_param(self, param):
         # Removing param from puppet
         # Validating all link are valid or not.
-        pass
+        if isinstance(param, ParamData):
+            param = param.root
+        # Removing param from puppet
+        params = self.root.get("param")
+        if params is not None:
+            params.remove(param)
+
+    def clear_binding(self):
+        for p in self.param():
+            p.clear_binding()
+            
+    def cleanup_slot(self):
+        # Updating texture slot
+        used_slots = set()
+        for node in new_puppet._nodes:
+            if node.get("textures"):
+                for s in node["textures"]:
+                    used_slots.append(s)
+        textures
 
     
 class NodeData:
@@ -160,6 +203,55 @@ class ParamData(NodeData):
         self.res_type="param"
         return self
 
+    def clear_binding(self):
+        is_vec2 = self.root.get("is_vec2")
+        bindings = self.root.get("bindings")
+        
+        def check_existence(b):
+            node = self.puppet.nodes(uuid=b.get("node"))
+            if len(node) == 0:
+                print("No node %x of binding %s"%(b.get("node"), self.root.get("name")))
+                return False
+            node = node[0]
+            if b.get("param_name") == "deform":
+                target = b.get("values")[0]
+                target = target[0]
+                verts = node.root.get("mesh").get("verts")
+                if len(target) != len(verts) / 2:
+                    print("Number of mesh of '%s'(%d) != '%s'(%d)"%(self.root.get("name"), len(target), node.root.get("name"), len(verts)))
+                    return False
+            return True
+
+        if bindings is not None:
+            self.root["bindings"] = [b for b in bindings if check_existence(b)]
+                
+    
+    def merge_binding(self, overwrite):
+        is_vec2 = self.root.get("is_vec2")
+        bindings = self.root.get("bindings")
+        ow_bindings = overwrite.root.get("bindings")
+        not_matched = []
+        
+        axis_points = self.root.get("axis_points")
+        ow_axis_points = overwrite.root.get("axis_points")
+
+        if len(axis_points[0]) != len(ow_axis_points[0]) or\
+           len(axis_points[1]) != len(ow_axis_points[1]):
+            print("Axis points of '%s' differs from '%s', replace all."%(self.root.get("name"), overwrite.root.get("name")))
+            self.root.clear()
+            self.root.update(overwrite.root)
+        
+        else:
+            for ow_b in ow_bindings:
+                b = [bb for bb in bindings if bb.get("node") == ow_b.get("node") and bb.get("param_name") == ow_b.get("param_name")]
+                if len(b) > 0:
+                    b[0].clear()
+                    b[0].update(ow_b)
+                else:
+                    print("%s is not in original. Added."%self.puppet.nodes(uuid=ow_b.get("node")))
+                    not_matched.append(ow_b)
+            bindings.extend(not_matched)
+                
 
 class LinkData(NodeData):
     def __init__(self):
