@@ -2,11 +2,11 @@ def _resources(puppet, resources, res_type, klass, name=None, uuid=None):
     if resources is None:
         return None
     if name is None and uuid is None:
-        return [klass().from_json(puppet, node) for node in resources]
+        return [klass(puppet).from_json(puppet, node) for node in resources]
     elif name is not None:
-        return [klass().from_json(puppet, node) for node in resources if isinstance(node, dict) and name in node.get("name")]
+        return [klass(puppet).from_json(puppet, node) for node in resources if isinstance(node, dict) and name in node.get("name")]
     elif uuid is not None:
-        return [klass().from_json(puppet, node) for node in resources if isinstance(node, dict) and node.get("uuid") == uuid]
+        return [klass(puppet).from_json(puppet, node) for node in resources if isinstance(node, dict) and node.get("uuid") == uuid]
     return None
 
 
@@ -154,7 +154,8 @@ class PuppetData:
 
     
 class NodeData:
-    def __init__(self):
+    def __init__(self, puppet):
+        self.puppet = puppet
         self.res_type="nodes"
 
     def __repr__(self):
@@ -166,6 +167,12 @@ class NodeData:
         if "textures" not in self.root:
             return None
         return [self.puppet.textures[tex] for tex in self.root.get("textures")]
+    
+    def name(self):
+        return self.root.get("name")
+    
+    def uuid(self):
+        return self.root.get("uuid")
 
     def add_child(self, node):
         self.puppet.add_node(self, node)
@@ -178,14 +185,15 @@ class NodeData:
     
     @classmethod
     def from_json(klass, puppet, node_json):
-        self = klass()
+        self = klass(puppet)
         self.puppet = puppet
         self.root = node_json
         return self
 
     
 class ParamData(NodeData):
-    def __init__(self):
+    def __init__(self, puppet):
+        self.puppet = puppet
         self.res_type = "param"
 
     def links(self, name=None, uuid=None):
@@ -197,7 +205,7 @@ class ParamData(NodeData):
 
     @classmethod
     def from_json(klass, puppet, param_json):
-        self = klass()
+        self = klass(puppet)
         self.puppet = puppet
         self.root = param_json
         self.res_type="param"
@@ -251,15 +259,59 @@ class ParamData(NodeData):
                     print("%s is not in original. Added."%self.puppet.nodes(uuid=ow_b.get("node")))
                     not_matched.append(ow_b)
             bindings.extend(not_matched)
+            
+    def add_link(self, link = None, param = None):
+        if link is None and param is not None:
+            if isinstance(param, ParamData):
+                param = param.root
+            link = LinkData(self.puppet, param.get("uuid"))
+        if isinstance(link, LinkData):
+            link = link.root
+        if "links" not in self.root:
+            self.root["links"] = []
+        self.root["links"].append(link)
+    
+    def remove_link(self, link):
+        if isinstance(link, LinkData):
+            link = link.root
+        if "links" in self.root:
+            self.root["links"].remove(link)
+        
                 
 
-class LinkData(NodeData):
-    def __init__(self):
-        self.res_type="links"
+class BindingData(NodeData):
+    def __init__(self, puppet):
+        self.puppet = puppet
+        self.res_type="bindings"
+        self.root = {
+            "node": None,
+            "param_*name": "",
+            "values": [[]],
+            "isSet": [[]],
+            "interpolate_mode": ""
+        }
 
     @classmethod
     def from_json(klass, puppet, param_json):
-        self = klass()
+        self = klass(puppet)
+        self.puppet = puppet
+        self.root = param_json
+        return self
+                
+
+class LinkData(NodeData):
+    def __init__(self, puppet, link_uuid = None):
+        self.puppet = puppet
+        self.res_type="links"
+        self.root = {
+            "linkUUID": link_uuid,
+            "inAxis": 0,
+            "outAxis": 0
+        }
+
+    @classmethod
+    def from_json(klass, puppet, param_json):
+        self = klass(puppet)
         self.puppet = puppet
         self.root = param_json
         return self
