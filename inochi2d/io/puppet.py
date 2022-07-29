@@ -159,7 +159,7 @@ class NodeData:
         self.res_type="nodes"
 
     def __repr__(self):
-        return "%s(name='%s', uuid='%x')"%(self.res_type, self.root.get("name"), self.root.get("uuid"))
+        return "%s(name='%s', uuid='%x')"%(self.res_type, self.name(), self.uuid())
     
     def textures(self):
         if not self.puppet or not isinstance(self.root, dict):
@@ -200,6 +200,9 @@ class ParamData(NodeData):
         res_type = "links"
         return _resources(self, self.root.get(res_type), res_type, LinkData, name, uuid)
     
+    def param_name(self):
+        return self.root.get("param_name")
+    
     def clear_links_for(self, uuid):
         pass
 
@@ -218,7 +221,7 @@ class ParamData(NodeData):
         def check_existence(b):
             node = self.puppet.nodes(uuid=b.get("node"))
             if len(node) == 0:
-                print("No node %x of binding %s"%(b.get("node"), self.root.get("name")))
+                print("No node %x of binding %s"%(b.get("node"), self.name()))
                 return False
             node = node[0]
             if b.get("param_name") == "deform":
@@ -226,7 +229,7 @@ class ParamData(NodeData):
                 target = target[0]
                 verts = node.root.get("mesh").get("verts")
                 if len(target) != len(verts) / 2:
-                    print("Number of mesh of '%s'(%d) != '%s'(%d)"%(self.root.get("name"), len(target), node.root.get("name"), len(verts)))
+                    print("Number of mesh of '%s'(%d) != '%s'(%d)"%(self.name(), len(target), node.name(), len(verts)))
                     return False
             return True
 
@@ -245,7 +248,7 @@ class ParamData(NodeData):
 
         if len(axis_points[0]) != len(ow_axis_points[0]) or\
            len(axis_points[1]) != len(ow_axis_points[1]):
-            print("Axis points of '%s' differs from '%s', replace all."%(self.root.get("name"), overwrite.root.get("name")))
+            print("Axis points of '%s' differs from '%s', replace all."%(self.name(), overwrite.name()))
             self.root.clear()
             self.root.update(overwrite.root)
         
