@@ -1,3 +1,6 @@
+import sys
+sys.path.append("..")
+
 import platform
 from sdl2 import *
 from OpenGL import GL, GLU
@@ -50,7 +53,7 @@ def curr_time():
 
 inInit(curr_time)
 
-puppet = inPuppetLoad("./Aka-working.inx")
+puppet = inPuppetLoad("../Aka.inx")
 
 inViewportSet(WINDOW_WIDTH, WINDOW_HEIGHT)
 print("viewport_get=%f,%f"%inViewportGet())
