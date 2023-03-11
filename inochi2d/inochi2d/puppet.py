@@ -1,4 +1,6 @@
 from ..api import *
+from .node import *
+from .param import *
 
 class Puppet:
 
@@ -14,3 +16,16 @@ class Puppet:
 
     def draw(self):
         inPuppetDraw(self.handle)
+
+    def name(self):
+        return inPuppetGetName(self.handle)
+    
+    def uuid(self):
+        return inPuppetGetUUID(self.handle)
+
+    def root(self):
+        return Node(inPuppetGetRootNode(self.handle))
+    
+    def parameters(self):
+        params = inPuppetGetParameters(self.handle)
+        return [Parameter(handle) for handle in params]

@@ -140,8 +140,9 @@ class PuppetData:
             params.remove(param)
 
     def clear_binding(self):
-        for p in self.param():
-            p.clear_binding()
+        if self.param():
+            for p in self.param():
+                p.clear_binding()
             
     def cleanup_slot(self):
         # Updating texture slot
@@ -166,7 +167,7 @@ class NodeData:
             return None
         if "textures" not in self.root:
             return None
-        return [self.puppet.textures[tex] for tex in self.root.get("textures")]
+        return [self.puppet.textures[tex] if tex < len(self.puppet.textures) else None for tex in self.root.get("textures")]
     
     def name(self):
         return self.root.get("name")
