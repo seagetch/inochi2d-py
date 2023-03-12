@@ -123,9 +123,7 @@ def inPuppetGetParameters(puppet):
     inochi2d.inPuppetGetParameters(puppet, ptr, length)
     arr = ptr.contents
     length = int.from_bytes(length.contents, sys.byteorder)
-    result = []
-    for i in range(length):
-        result.append(arr[i])
+    result = arr[0:length]
     inFreeMem(arr)
     return result
 
@@ -163,7 +161,7 @@ def inParameterGetMax(param):
     return (x.contents.value, y.contents.value)
 
 #void inParameterGetAxes(InParameter* param, float*** axes, size_t* xLength, size_t* yLength) {
-@i2d_decorate((c_void_p, POINTER(POINTER(c_void_p)), POINTER(c_uint), POINTER(c_uint)), None)
+@i2d_decorate((c_void_p, POINTER(POINTER(c_float)), POINTER(c_uint), POINTER(c_uint)), None)
 def inParameterGetAxes(param):
     ptr = pointer(pointer(c_void_p(0)))
     xlength = pointer(c_uint(0));
@@ -174,15 +172,20 @@ def inParameterGetAxes(param):
     ylength = int.from_bytes(ylength.contents, sys.byteorder)
     result = [[], []]
 
-    result_type = c_float * xlength
-    result[0] = cast(arr[0].contents, result_type).contents
-    
-    result_type = c_float * ylength
-    result[1] = cast(arr[1].contents, result_type).contents
+    result[0] = arr[0][0:xlength]
+    result[1] = arr[1][0:ylength]
 
-#    inFreeArray(arr)
     ifFreeMem(arr)
     return result
+
+@i2d_decorate((c_void_p, c_float, c_float, POINTER(c_uint), POINTER(c_uint)), None)
+def inParameterFindClosestKeypoint(param, x, y):
+    index_x = pointer(c_uint(0))
+    index_y = pointer(c_uint(0))
+    result = inochi2d.inParameterFindClosestKeypoint(param, x, y, index_x, index_y)
+    return (index_x.contents.value, index_y.contents.value)
+
+i2d_import("inParameterDestroy", (c_void_p,), None)
 
 ###################################################################################################
 # Node
@@ -195,9 +198,7 @@ def inNodeGetChildren(node):
     inochi2d.inNodeGetChildren(node, ptr, length)
     arr = ptr.contents
     length = int.from_bytes(length.contents, sys.byteorder)
-    result = []
-    for i in range(length):
-        result.append(arr[i])
+    result = arr[0:length]
     inFreeMem(arr)
     return result
 
@@ -252,6 +253,18 @@ def inNodeGetCombinedBoundsWithUpdate(node):
     inochi2d.inNodeGetCombinedBounds(node, x, y, z, w)
     return (x, y, z, w)
 
+@i2d_decorate((c_void_p, c_char_p), None)
+def inNodeLoadJson(node, text):
+    inochi2d.inNodeLoadJson(node, text)
+
+@i2d_decorate((c_void_p,), c_char_p)
+def inNodeDumpJson(node):
+    json_text = inochi2d.inNodeDumpJson(node)
+    result    = json_text.decode("utf-8")
+    return result
+
+i2d_import("inNodeDestroy", (c_void_p,), None)
+
 ###################################################################################################
 # Drawable
 @i2d_decorate((c_void_p, POINTER(POINTER(c_float)), POINTER(c_uint)), c_bool)
@@ -263,8 +276,7 @@ def inDrawableGetVertices(node):
         return None
     else:
         length = length.contents.value
-        result_type = c_float * length
-        arr = cast(vertices.contents, result_type).value
+        arr = vertices.contents[0:length]
         #inFreeMem(vertices)
         return arr
 
@@ -278,3 +290,74 @@ def inDrawableSetVertices(node, vertices):
 i2d_import("inDrawableRefresh", (c_void_p,), c_bool)
 i2d_import("inDrawableRefreshDeform", (c_void_p,), c_bool)
 i2d_import("inDrawableReset", (c_void_p,), c_bool)
+
+###################################################################################################
+# Binding
+#void inParameterGetBindings(InParameter* param, InParameterBinding*** arr, size_t* length) {
+@i2d_decorate((c_void_p, POINTER(POINTER(c_void_p)), POINTER(c_uint)), None)
+def inParameterGetBindings(param):
+    ptr = pointer(pointer(c_void_p(0)))
+    length = pointer(c_uint(0))
+    inochi2d.inParameterGetBindings(param, ptr, length)
+    length = length.contents.value
+    return ptr.contents[0:length]
+
+@i2d_decorate((c_void_p, c_void_p, c_char_p), c_void_p)
+def inParameterGetBinding(param, node, name):
+    return inochi2d.inParameterGetBinding(param, node, name.encode("utf-8"))
+i2d_import("inParameterBindingApply", (c_void_p, c_uint, c_uint, c_float, c_float), None)
+i2d_import("inParameterBindingClear", (c_void_p,), None)
+i2d_import("inParameterBindingSetCurrent", (c_void_p, c_int, c_int), None)
+i2d_import("inParameterBindingUnset", (c_void_p, c_uint, c_uint), None)
+i2d_import("inParameterBindingReset", (c_void_p, c_uint, c_uint), None)
+i2d_import("inParameterBindingIsSet", (c_void_p, c_uint, c_uint), c_bool)
+i2d_import("inParameterBindingScaleValueAt", (c_void_p, c_uint, c_uint, c_uint, c_float), None)
+i2d_import("inParameterBindingExtrapolateValueAt", (c_void_p, c_uint, c_uint, c_uint), None)
+i2d_import("inParameterBindingCopyKeypointToBinding", (c_void_p, c_uint, c_uint, c_void_p, c_uint, c_uint), None)
+i2d_import("inParameterBindingSwapKeypointWithBinding", (c_void_p, c_uint, c_uint, c_void_p, c_uint, c_uint), None)
+i2d_import("inParameterBindingReverseAxis", (c_void_p, c_uint), None)
+i2d_import("inParameterBindingReInterpolate", (c_void_p,), None)
+i2d_import("inParameterBindingMoveKeypoints", (c_void_p, c_uint, c_uint, c_uint), None)
+i2d_import("inParameterBindingInsertKeypoints", (c_void_p, c_uint, c_uint), None)
+i2d_import("inParameterBindingDeleteKeypoints", (c_void_p, c_uint, c_uint), None)
+@i2d_decorate((c_void_p,), c_char_p)
+def inParameterBindingGetName(binding):
+    name = inochi2d.inParameterBindingGetName(binding)
+    result = name.decode("utf-8")
+    return result
+i2d_import("inParameterBindingGetNode", (c_void_p,), c_void_p)
+i2d_import("inParameterBindingGetNodeUUID", (c_void_p,), c_uint)
+i2d_import("inParameterBindingIsCompatibleWithNode", (c_void_p, c_void_p), c_bool)
+i2d_import("inParameterBindingGetInterpolateMode", (c_void_p,), c_uint)
+i2d_import("inParameterBindingSetInterpolateMode", (c_void_p, c_uint), None)
+
+i2d_import("inParameterBindingDestroy", (c_void_p,), None)
+
+###################################################################################################
+# Deformation
+i2d_import("inParameterBindingGetType", (c_void_p, ), c_uint)
+#BindingType inParameterBindingGetValue(InParameterBinding* binding, uint x, uint y, float** values, size_t* length) {
+@i2d_decorate((c_void_p, c_uint, c_uint, POINTER(POINTER(c_float)), POINTER(c_uint)), c_uint)
+def inParameterBindingGetValue(binding, x, y):
+    ptr = pointer(pointer(c_float(0)))
+    length = pointer(c_uint(0))
+    result = inochi2d.inParameterBindingGetValue(binding, x, y, ptr, length)
+    if result == 0:
+        value = ptr.contents[0]
+        inFreeMem(ptr.contents)
+        return value
+    elif result == 1:
+        length = length.contents.value
+        value = ptr.contents[0:length]
+        return value
+    else:
+        return None
+
+#BindingType inParameterBindingSetValue(InParameterBinding* binding, uint x, uint y, float* values, size_t length) {
+@i2d_decorate((c_void_p, c_uint, c_uint, POINTER(c_float), c_uint), c_uint)
+def inParameterBindingSetValue(binding, x, y, value):
+    if isinstance(value, list):
+        len = len(value)
+        return inochi2d.inParameterBindingSetValue(binding, x, y, value, len)
+    else:
+        return inochi2d.inParameterBindingSetValue(binding, x, y, [value], 1)

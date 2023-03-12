@@ -7,7 +7,11 @@ class Camera:
     
     def __init__(self, handle):
         self.handle = handle
-    
+
+    def __del__(self):
+        inCameraDestroy(self.handle)
+        self.handle = None
+
     def set_position(self, x, y):
         api.inCameraSetPosition(self.handle, x, y)
     

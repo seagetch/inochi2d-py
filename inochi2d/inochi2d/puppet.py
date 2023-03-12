@@ -10,7 +10,11 @@ class Puppet:
 
     def __init__(self, handle):
         self.handle = handle
-        
+
+    def __del__(self):
+        inPuppetDestroy(self.handle)
+        self.handle = None
+
     def update(self):
         inPuppetUpdate(self.handle)
 
