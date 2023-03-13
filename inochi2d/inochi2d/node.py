@@ -4,6 +4,10 @@ class Node:
     def __init__(self, handle):
         self.handle = handle
 
+    def __del__(self):
+        inNodeDestroy(self.handle)
+        self.handle = None
+
     def name(self):
         return inNodeGetName(self.handle)
     
@@ -40,3 +44,9 @@ class Node:
     def children(self):
         children = inNodeGetChildren(self.handle)
         return [Node(handle) for handle in children]
+    
+    def loads(self, text):
+        inNodeLoadJson(self.handle, text)
+
+    def dumps(self):
+        return inNodeDumpJson(self.handle)
