@@ -7,9 +7,10 @@ from .viewport import *
 from .param    import *
 from .node     import *
 from .binding  import *
+from .texture  import *
 
-def init(timing_func):
-    inInit(timing_func)
+def init():
+    inInit(None)
 
 def cleanup():
     inCleanup()

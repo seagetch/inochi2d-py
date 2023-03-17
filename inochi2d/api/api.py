@@ -114,6 +114,8 @@ def inPuppetGetName(puppet):
 
 i2d_import("inPuppetUpdate", (c_void_p,), None)
 i2d_import("inPuppetDraw", (c_void_p,), None)
+i2d_import("inPuppetGetEnableDrivers", (c_void_p,), c_bool)
+i2d_import("inPuppetSetEnableDrivers", (c_void_p, c_bool), None)
 
 ###################################################################################################
 # Parameter
@@ -261,13 +263,14 @@ def inNodeGetCombinedBoundsWithUpdate(node):
     return (x, y, z, w)
 
 @i2d_decorate((c_void_p, c_char_p), None)
-def inNodeLoadJson(node, text):
+def inNodeLoadJson(node, data):
     inochi2d.inNodeLoadJson(node, text)
 
-@i2d_decorate((c_void_p,), c_char_p)
-def inNodeDumpJson(node):
-    json_text = inochi2d.inNodeDumpJson(node)
-    result    = json_text.decode("utf-8")
+@i2d_decorate((c_void_p, c_bool), POINTER(c_char))
+def inNodeDumpJson(node, recursive):
+    json_text = inochi2d.inNodeDumpJson(node, recursive)
+    result = c_char_p.from_buffer_copy(json_text).value.decode("utf-8")
+    inFreeMem(json_text)
     return result
 
 i2d_import("inNodeDestroy", (c_void_p,), None)
@@ -359,8 +362,6 @@ def inParameterBindingGetValue(binding, x, y):
     ptr = c_void_p(0)
     length = pointer(c_uint(0));
     type = inochi2d.inParameterBindingGetValue(binding, x, y, ptr, length)
-
-    type = inochi2d.inParameterBindingGetValue(binding, x, y, ptr, length)
     if type == 0:
         return inParameterBindingGetFloat(binding, x, y)
     elif type == 1:
@@ -385,3 +386,45 @@ def inParameterBindingSetValue(binding, x, y, value):
         return inochi2d.inParameterBindingSetValue(binding, x, y, value, len)
     else:
         return inochi2d.inParameterBindingSetValue(binding, x, y, [value], 1)
+
+###################################################################################################
+# Texture
+i2d_import("inPuppetGetTexture", (c_void_p, c_uint), c_void_p)
+i2d_import("inTextureGetWidth", (c_void_p,), c_uint)
+i2d_import("inTextureGetHeight", (c_void_p,), c_uint)
+i2d_import("inTextureGetColorMode", (c_void_p,), c_uint)
+i2d_import("inTextureGetChannels", (c_void_p,), c_int)
+
+@i2d_decorate((c_void_p, POINTER(c_int), POINTER(c_int)), None)
+def inTextureGetCenter(texture):
+    x = pointer(c_int(0))
+    y = pointer(c_int(0))
+    inochi2d.inTextureGetCenter(texture, x, y)
+    return (x.contents.value, y.contents.value)
+
+@i2d_decorate((c_void_p, POINTER(c_int), POINTER(c_int)), None)
+def inTextureGetSize(texture):
+    x = pointer(c_int(0))
+    y = pointer(c_int(0))
+    inochi2d.inTextureGetSize(texture, x, y)
+    return (x.contents.value, y.contents.value)
+
+i2d_import("inTextureBind", (c_void_p, c_uint), None)
+i2d_import("inTextureGetTextureId", (c_void_p,), c_uint)
+i2d_import("inTextureDispose", (c_void_p,), None)
+
+@i2d_decorate((c_void_p, POINTER(c_ubyte), c_uint), None)
+def inTextureSetData(texture, buffer, length):
+    inochi2d.inTextureSetData(texture, buffer, length)
+
+@i2d_decorate((c_void_p, c_bool, c_void_p, POINTER(c_uint)), None)
+def inTextureGetTextureData(texture, unmultiply):
+    ptr = c_void_p(0)
+    length = pointer(c_uint(0));
+    inochi2d.inTextureGetTextureData(texture, unmultiply, ptr, length)
+    buffer = pointer(cast((c_ubyte * length.contents.value)(), POINTER(c_ubyte)))
+    inochi2d.inTextureGetTextureData(texture, unmultiply, buffer, length)
+    length = length.contents.value
+    return (buffer.contents, length)
+
+i2d_import("inTextureDestroy", (c_void_p, ), None)

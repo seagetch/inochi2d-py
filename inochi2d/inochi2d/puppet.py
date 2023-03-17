@@ -1,6 +1,7 @@
 from ..api import *
 from .node import *
 from .param import *
+from .texture import *
 
 class Puppet:
 
@@ -33,3 +34,12 @@ class Puppet:
     def parameters(self):
         params = inPuppetGetParameters(self.handle)
         return [Parameter(handle) for handle in params]
+    
+    def get_enable_drivers(self):
+        return inPuppetGetEnableDrivers(self.handle)
+    
+    def set_enable_drivers(self, value = True):
+        inPuppetSetEnableDrivers(self.handle, value)
+
+    def get_texture_from_id(self, id):
+        return Texture(inPuppetGetTexture(self.handle, id))

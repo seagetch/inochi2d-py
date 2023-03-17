@@ -1,4 +1,5 @@
 from ..api import *
+import json
 
 class Node:
     def __init__(self, handle):
@@ -45,8 +46,10 @@ class Node:
         children = inNodeGetChildren(self.handle)
         return [Node(handle) for handle in children]
     
-    def loads(self, text):
+    def loads(self, data):
+        text = json.dumps(data)
         inNodeLoadJson(self.handle, text)
 
-    def dumps(self):
-        return inNodeDumpJson(self.handle)
+    def dumps(self, recursive = True):
+        text = inNodeDumpJson(self.handle, recursive)
+        return json.loads(text)
