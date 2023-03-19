@@ -9,18 +9,23 @@ class Node:
         inNodeDestroy(self.handle)
         self.handle = None
 
+    @property
     def name(self):
         return inNodeGetName(self.handle)
     
+    @property
     def uuid(self):
         return inNodeGetUUID(self.handle)
     
+    @property
     def type_id(self):
         return inNodeGetTypeId(self.handle)
 
+    @property
     def enabled(self):
         return inNodeGetEnabled(self.handle)
 
+    @property
     def path(self):
         return inNodeGetPath(self.handle)
         
@@ -53,3 +58,41 @@ class Node:
     def dumps(self, recursive = True):
         text = inNodeDumpJson(self.handle, recursive)
         return json.loads(text)
+    
+    @property
+    def transform(self):
+        return inNodeGetTransformMatrix(self.handle)
+    
+    @property
+    def local_transform(self):
+        return inNodeGetLocalTransformMatrix(self.handle)
+    
+    def get_value(self, name):
+        return inNodeGetValue(self.handle, name)
+    
+    def set_value(self, name, value):
+        inNodeSetValue(self.handle, name, value)
+
+    @property
+    def translation(self):
+        return inNodeGetTranslation(self.handle)
+
+    @translation.setter
+    def translation(self, value):
+        return inNodeSetTranslation(self.handle, *value)
+
+    @property
+    def rotation(self):
+        return inNodeGetRotation(self.handle)
+
+    @rotation.setter
+    def rotation(self, value):
+        return inNodeSetRotation(self.handle, *value)
+
+    @property
+    def scale(self):
+        return inNodeGetScale(self.handle)
+
+    @scale.setter
+    def scale(self, value):
+        return inNodeSetScale(self.handle, *value)

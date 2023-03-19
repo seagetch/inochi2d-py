@@ -4,20 +4,18 @@ from .node import *
 from typing import *
 
 class Deformation:
-    def __init__(self, offsets, length, binding, x, y):
+    def __init__(self, offsets, binding, x, y):
         self.binding = binding
         self.x = x
         self.y = y
-        self.ptr = offsets
-        self.vertex_offsets = offsets[0:length]
-        self.length = length
+        self.vertex_offsets = offsets
 
-    def __del__(self):
-        pass
-#        inFreeMem(self.ptr)
-
-    def pull(self, x, y):
-        inParameterBindingGetValueUpdate(self.binding, x, y, self.ptr, self.length)
+    def pull(self, x = None, y = None):
+        if x is None:
+            x = self.x
+        if y is None:
+            y = self.y
+        inParameterBindingGetValueUpdate(self.binding, x, y, self.vertex_offsets)
 
 class ParameterBinding:
 
@@ -28,9 +26,11 @@ class ParameterBinding:
         inParameterBindingDestroy(self.handle)
         self.handle = None
 
+    @property
     def name(self):
         return inParameterBindingGetName(self.handle)
     
+    @property
     def node(self):
         return Node(inParameterBindingGetNode(self.handle))
     
@@ -76,27 +76,41 @@ class ParameterBinding:
     def delete_keypoints(self, axis, index):
         inParameterBindingDeleteKeypoints(self.handle, axis, index)
 
-    def get_node_uuid(self):
+    @property
+    def node_uuid(self):
         return inParameterBindingGetNodeUUID(self.handle)
 
     def is_compatible(self, node):
         return inParameterBindingIsCompatibleWithNode(self.handle, node.handle)
 
-    def get_interpolate_mode(self):
+    @property
+    def interpolate_mode(self):
         return inParameterBindingGetInterpolateMode(self.handle)
     
+    @interpolate_mode.setter
     def set_interpolate_mode(self, mode):
         inParameterBindingSetInterpolateMode(self.handle, mode)
     
-    def get_value(self, x, y):
-        result = inParameterBindingGetValue(self.handle, x, y)
-        if isinstance(result, float):
-            return result
-        else:
-            return Deformation(*result, self.handle, x, y)
-    
-    def set_value(self, x, y, value):
-        if isinstance(value, Deformation):
-            return inParameterBindingSetValue(self.handle, x, y, value.vertex_offsets)
-        else:
-            return inParameterBindingSetValue(self.handle, x, y, value)
+    class Value:
+        def __init__(self, binding):
+            self.handle = binding.handle
+
+        def __getitem__(self, key):
+            x, y = key
+            result = inParameterBindingGetValue(self.handle, x, y)
+            if isinstance(result, float):
+                return result
+            else:
+                return result
+#                return Deformation(result, self.handle, x, y)
+
+        def __setitem__(self, key, value):
+            x, y = key
+            if isinstance(value, Deformation):
+                return inParameterBindingSetValue(self.handle, x, y, value.vertex_offsets)
+            else:
+                return inParameterBindingSetValue(self.handle, x, y, value)
+        
+    @property
+    def value(self):
+        return self.Value(self)

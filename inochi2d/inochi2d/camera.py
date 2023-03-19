@@ -12,14 +12,26 @@ class Camera:
         inCameraDestroy(self.handle)
         self.handle = None
 
-    def set_position(self, x, y):
-        api.inCameraSetPosition(self.handle, x, y)
-    
-    def get_position(self):
+    @property
+    def position(self):
         return api.inCameraGetPosition(self.handle)
-    
-    def set_zoom(self, zoom):
-        api.inCameraSetZoom(self.handle, zoom)
-        
-    def get_zoom(self):
+
+    @position.setter
+    def position(self, pos):
+        api.inCameraSetPosition(self.handle, pos[0], pos[1])
+
+    @property    
+    def zoom(self):
         return api.inCameraGetZoom(self.handle)
+    
+    @zoom.setter
+    def zoom(self, zoom):
+        api.inCameraSetZoom(self.handle, zoom)
+
+    @property    
+    def matrix(self):
+        return inCameraGetMatrix(self.handle)
+    
+    @property
+    def screen_to_global(self):
+        return inCameraGetScreenToGlobalMatrix(self.handle)

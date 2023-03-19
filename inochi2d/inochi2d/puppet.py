@@ -22,23 +22,29 @@ class Puppet:
     def draw(self):
         inPuppetDraw(self.handle)
 
+    @property
     def name(self):
         return inPuppetGetName(self.handle)
     
+    @property
     def uuid(self):
         return inPuppetGetUUID(self.handle)
 
+    @property
     def root(self):
         return Node(inPuppetGetRootNode(self.handle))
     
+    @property
     def parameters(self):
         params = inPuppetGetParameters(self.handle)
         return [Parameter(handle) for handle in params]
     
-    def get_enable_drivers(self):
+    @property
+    def enable_drivers(self):
         return inPuppetGetEnableDrivers(self.handle)
     
-    def set_enable_drivers(self, value = True):
+    @enable_drivers.setter
+    def enable_drivers(self, value):
         inPuppetSetEnableDrivers(self.handle, value)
 
     def get_texture_from_id(self, id):

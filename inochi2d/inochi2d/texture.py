@@ -9,28 +9,37 @@ class Texture:
         inTextureDestroy(self.handle)
         self.handle = None
 
+    @property
     def size(self):
         return inTextureGetSize(self.handle)
     
+    @property
     def center(self):
         return inTextureGetCenter(self.handle)
     
+    @property
     def width(self):
         return inTextureGetWidth(self.hendle)
     
+    @property
     def height(self):
         return inTextureGetHeight(self.handle)
     
+    @property
     def channels(self):
         return inTextureGetChannels(self.handle)
 
-    def set_data(self, buffer):
-        inTextureSetData(self.handle, buffer, len(buffer))
-    
     def get_data(self, unmultiply = False):
-        buffer, length = inTextureGetTextureData(self.handle, unmultiply)
-        return buffer, length
+        return inTextureGetTextureData(self.handle, unmultiply)
 
+    @property
+    def data(self):
+        return self.get_data()
+
+    @data.setter
+    def data(self, buffer):
+        inTextureSetData(self.handle, buffer)
+    
     def bind(self):
         inTextureBind(self.handle)
 

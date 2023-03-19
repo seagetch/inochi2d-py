@@ -3,6 +3,7 @@ import platform
 import sys
 import numpy as np
 import copy
+import functools
 
 _CURRENT_MODULE_ = sys.modules[__name__]
 
@@ -26,6 +27,9 @@ def i2d_decorate(argtypes : tuple, restype):
         getattr(inochi2d, name).restype  = restype
         return func
     return _decorator
+
+def shape_len(arr):
+    return functools.reduce(lambda x, y: x * y, arr.shape, 1)
 
 ###################################################################################################
 # Basic Functions
@@ -88,6 +92,19 @@ def inCameraGetRealSize(camera):
     return (x.contents.value, y.contents.value)
 
 #void inCameraGetMatrix(InCamera* camera, float* mat4); // NOTE: mat4 array needs to be 16 elements long.
+@i2d_decorate((c_void_p, POINTER(c_float)), None)
+def inCameraGetMatrix(camera):
+    mem = (c_float * 16)()
+    buffer = cast(mem, POINTER(c_float))
+    inochi2d.inCameraGetMatrix(camera, buffer)
+    return np.frombuffer(mem, c_float).reshape((4, 4))
+
+@i2d_decorate((c_void_p, POINTER(c_float)), None)
+def inCameraGetScreenToGlobalMatrix(camera):
+    mem = (c_float * 16)()
+    buffer = cast(mem, POINTER(c_float))
+    inochi2d.inCameraGetScreenToGlobalMatrix(camera, buffer)
+    return np.frombuffer(mem, c_float).reshape((4, 4))
 
 ###################################################################################################
 # Puppet
@@ -128,11 +145,6 @@ def inPuppetGetParameters(puppet):
     inochi2d.inPuppetGetParameters(puppet, buffer, length)
     length = length.contents.value
     result = buffer.contents[0:length]
-
-#    arr = ptr.contents
-#    length = int.from_bytes(length.contents, sys.byteorder)
-#    result = arr[0:length]
-#    inFreeMem(arr)
     return result
 
 @i2d_decorate((c_void_p,),c_char_p)
@@ -190,10 +202,37 @@ def inParameterGetAxes(param):
 def inParameterFindClosestKeypoint(param, x, y):
     index_x = pointer(c_uint(0))
     index_y = pointer(c_uint(0))
-    result = inochi2d.inParameterFindClosestKeypoint(param, x, y, index_x, index_y)
+    inochi2d.inParameterFindClosestKeypoint(param, x, y, index_x, index_y)
+    return (index_x.contents.value, index_y.contents.value)
+
+@i2d_decorate((c_void_p, POINTER(c_uint), POINTER(c_uint)), None)
+def inParameterFindClosestKeypointAtCurrent(param):
+    index_x = pointer(c_uint(0))
+    index_y = pointer(c_uint(0))
+    inochi2d.inParameterFindClosestKeypointAtCurrent(param, index_x, index_y)
     return (index_x.contents.value, index_y.contents.value)
 
 i2d_import("inParameterDestroy", (c_void_p,), None)
+
+@i2d_decorate((c_void_p, c_void_p, c_char_p), c_void_p)
+def inParameterGetBinding(param, node, name):
+    return inochi2d.inParameterGetBinding(param, node, name.encode("utf-8"))
+
+@i2d_decorate((c_void_p, c_void_p, c_char_p), c_void_p)
+def inParameterGetOrAddBinding(param, node, name):
+    return inochi2d.inParameterGetOrAddBinding(param, node, name.encode("utf-8"))
+
+@i2d_decorate((c_void_p, c_void_p, c_char_p), c_void_p)
+def inParameterCreateBinding(param, node, name):
+    return inochi2d.inParameterCreateBinding(param, node, name.encode("utf-8"))
+
+@i2d_decorate((c_void_p, c_void_p), c_void_p)
+def inParameterAddBinding(param, binding):
+    return inochi2d.inParameterAddBinding(param, binding)
+
+@i2d_decorate((c_void_p, c_void_p), c_void_p)
+def inParameterRemoveBinding(param, binding):
+    return inochi2d.inParameterRemoveBinding(param, binding)
 
 ###################################################################################################
 # Node
@@ -236,8 +275,15 @@ def inNodeGetTypeId(node):
     return result
 
 i2d_import("inNodeHasParam", (c_void_p,), c_bool)
-i2d_import("inNodeGetValue", (c_void_p, c_char_p), c_float)
-i2d_import("inNodeSetValue", (c_void_p, c_char_p, c_float), None)
+
+@i2d_decorate((c_void_p, c_char_p), c_float)
+def inNodeGetValue(node, name):
+    return inochi2d.inNodeGetValue(node, name.encode("utf-8"))
+
+@i2d_decorate((c_void_p, c_char_p, c_float), None)
+def inNodeSetValue(node, name, value):
+    inochi2d.inNodeSetValue(node, name.encode("utf-8"), value)
+
 i2d_import("inNodeDraw", (c_void_p,), None)
 i2d_import("inNodeDrawOne", (c_void_p,), None)
 i2d_import("inNodeUpdate", (c_void_p,), None)
@@ -275,31 +321,162 @@ def inNodeDumpJson(node, recursive):
 
 i2d_import("inNodeDestroy", (c_void_p,), None)
 
+@i2d_decorate((c_void_p, POINTER(c_float)), None)
+def inNodeGetTransformMatrix(camera):
+    mem = (c_float * 16)()
+    buffer = cast(mem, POINTER(c_float))
+    inochi2d.inNodeGetTransformMatrix(camera, buffer)
+    return np.frombuffer(mem, c_float).reshape((4, 4))
+
+@i2d_decorate((c_void_p, POINTER(c_float)), None)
+def inNodeGetLocalTransformMatrix(camera):
+    mem = (c_float * 16)()
+    buffer = cast(mem, POINTER(c_float))
+    inochi2d.inNodeGetLocalTransformMatrix(camera, buffer)
+    return np.frombuffer(mem, c_float).reshape((4, 4))
+
+@i2d_decorate((c_void_p, POINTER(c_float), POINTER(c_float), POINTER(c_float)), None)
+def inNodeGetTranslation(node):
+    x = pointer(c_float(0))
+    y = pointer(c_float(0))
+    z = pointer(c_float(0))
+    inochi2d.inNodeGetTranslation(node, x, y, z)
+    return np.array((x.contents.value, y.contents.value, z.contents.value))
+
+@i2d_decorate((c_void_p, POINTER(c_float), POINTER(c_float), POINTER(c_float)), None)
+def inNodeGetRotation(node):
+    x = pointer(c_float(0))
+    y = pointer(c_float(0))
+    z = pointer(c_float(0))
+    inochi2d.inNodeGetRotation(node, x, y, z)
+    return np.array((x.contents.value, y.contents.value, z.contents.value))
+
+@i2d_decorate((c_void_p, POINTER(c_float), POINTER(c_float)), None)
+def inNodeGetScale(node):
+    x = pointer(c_float(0))
+    y = pointer(c_float(0))
+    inochi2d.inNodeGetScale(node, x, y)
+    return np.array((x.contents.value, y.contents.value))
+
+i2d_import("inNodeSetTranslation", (c_void_p, c_float, c_float, c_float), None)
+i2d_import("inNodeSetRotation", (c_void_p, c_float, c_float, c_float), None)
+i2d_import("inNodeSetScale", (c_void_p, c_float, c_float), None)
+
 ###################################################################################################
 # Drawable
-@i2d_decorate((c_void_p, POINTER(POINTER(c_float)), POINTER(c_uint)), c_bool)
+i2d_import("inSetUpdateBounds", (c_bool,), None)
+
+@i2d_decorate((c_void_p, c_void_p, POINTER(c_uint)), c_bool)
 def inDrawableGetVertices(node):
-    vertices = pointer(pointer(c_float))
-    length   = pointer(c_uint)
-    result = inochi2d.inDrawableGetVertices(node, vertices, length)
+    ptr = c_void_p(0)
+    length = pointer(c_uint(0));
+    result = inochi2d.inDrawableGetVertices(node, ptr, length)
     if not result:
         return None
-    else:
-        length = length.contents.value
-        arr = vertices.contents[0:length]
-        #inFreeMem(vertices)
-        return arr
+    mem = (c_float * length.contents.value)()
+    buffer = pointer(cast(mem, POINTER(c_float)))
+    inochi2d.inDrawableGetVertices(node, buffer, length)
+    length = length.contents.value
+    data = np.frombuffer(mem, c_float).reshape((int(length / 2), 2))
+    return data
 
 @i2d_decorate((c_void_p, POINTER(c_float), c_uint), c_bool)
 def inDrawableSetVertices(node, vertices):
-    arg_type = POINTER(c_float)
-    length   = len(vertices)
-    vert_arr = cast(vertices, arg_type)
-    return inochi2d.inDrawableSetVertices(node, vert_arr, length)
+    buffer = vertices.ctypes.data_as(POINTER(c_float))
+    length = shape_len(vertices)
+    inochi2d.inDrawableSetVertices(node, buffer, length)
+
+@i2d_decorate((c_void_p, c_void_p, POINTER(c_uint)), c_bool)
+def inDrawableGetDeformation(node):
+    ptr = c_void_p(0)
+    length = pointer(c_uint(0));
+    result = inochi2d.inDrawableGetDeformation(node, ptr, length)
+    if not result:
+        return None
+    mem = (c_float * length.contents.value)()
+    buffer = pointer(cast(mem, POINTER(c_float)))
+    inochi2d.inDrawableGetDeformation(node, buffer, length)
+    length = length.contents.value
+    data = np.frombuffer(mem, c_float, length).reshape((int(length / 2), 2))
+    return data
 
 i2d_import("inDrawableRefresh", (c_void_p,), c_bool)
 i2d_import("inDrawableRefreshDeform", (c_void_p,), c_bool)
 i2d_import("inDrawableReset", (c_void_p,), c_bool)
+i2d_import("inDrawableDrawBounds", (c_void_p,), c_bool)
+i2d_import("inDrawableDrawMeshLines", (c_void_p,), c_bool)
+i2d_import("inDrawableDrawMeshPoints", (c_void_p,), c_bool)
+
+###################################################################################################
+# MeshData
+
+@i2d_decorate((c_void_p, c_void_p, POINTER(c_uint),
+               c_void_p, POINTER(c_uint), c_void_p, POINTER(c_uint),
+               c_void_p, POINTER(c_uint), POINTER(c_uint),
+               POINTER(c_float), POINTER(c_float)), c_bool)
+def inDrawableGetMeshData(node):
+    ptr_verts  = c_void_p(0)
+    len_verts  = pointer(c_uint(0))
+    ptr_uvs    = c_void_p(0)
+    len_uvs    = pointer(c_uint(0))
+    ptr_ind    = c_void_p(0)
+    len_ind    = pointer(c_uint(0))
+    ptr_axes   = c_void_p(0)
+    len_axes_x = pointer(c_uint(0))
+    len_axes_y = pointer(c_uint(0))
+    origin_x   = pointer(c_float(0))
+    origin_y   = pointer(c_float(0))
+    inochi2d.inDrawableGetMeshData(node, ptr_verts, len_verts, ptr_uvs, len_uvs, ptr_ind, len_ind, ptr_axes, len_axes_x, len_axes_y, origin_x, origin_y)
+    buf_verts  = pointer(cast((c_float  * len_verts.contents.value)(), POINTER(c_float)))
+    buf_uvs    = pointer(cast((c_float  * len_uvs.contents.value)(), POINTER(c_float)))
+    buf_ind    = pointer(cast((c_ushort * len_ind.contents.value)(), POINTER(c_ushort)))
+    buf_axes   = pointer(cast((c_void_p * 2)(), POINTER(c_void_p)))
+    buf_axes.contents[0]= pointer(cast((c_float  * len_axes_y.contents.value)(), POINTER(c_float)))    
+    buf_axes.contents[1]= pointer(cast((c_float  * len_axes_x.contents.value)(), POINTER(c_float)))    
+    inochi2d.inDrawableGetMeshData(node, buf_verts, len_verts, buf_uvs, len_uvs, buf_ind, len_ind, buf_axes, len_axes_x, len_axes_y, origin_x, origin_y)
+    ret_verts  = np.ctypeslib.as_array(buf_verts.contents,  (len_verts,)).reshape((len_verts / 2, 2))
+    ret_uvs    = np.ctypeslib.as_array(buf_uvs.contents,    (len_uvs,)).reshape((len_uvs / 2, 2))
+    ret_ind    = np.ctypeslib.as_array(buf_ind.contents,    (len_ind,))
+    ret_axes   = [np.ctypeslib.as_array(buf_axes.contens[0], (len_axes_y)), 
+                  np.ctypeslib.as_array(buf_axes.contents[1], (len_axes_x))]
+    return [ret_verts, ret_uvs, ret_ind, ret_axes, (origin_x, origin_y)]
+
+@i2d_decorate((c_void_p, c_void_p, c_uint,
+               c_void_p, c_uint, c_void_p, c_uint,
+               c_void_p, c_uint, c_uint,
+               POINTER(c_float), POINTER(c_float)), c_bool)
+def inDrawableSetMeshData(node, verts, uvs, ind, axes, origin):
+    if verts is not None:
+        buf_verts  = verts.ctypes.data_as(POINTER(c_float))
+        len_verts  = shape_len(verts)
+    else:
+        buf_verts  = c_void_p(0)
+        len_verts  = 0
+    if uvs:
+        buf_uvs    = uvs.ctypes.data_as(POINTER(c_float))
+        len_uvs    = shape_len(uvs)
+    else:
+        buf_uvs    = c_void_p(0)
+        len_uvs    = 0
+    if ind:
+        buf_ind    = ind.ctypes.data_as(POINTER(c_ushort))
+        len_ind    = shape_len(ind)
+    else:
+        buf_ind    = c_void_p(0)
+        len_ind    = 0
+    if axes:
+        buf_axes   = pointer(cast((c_void_p * 2)(), POINTER(c_void_p)))
+        buf_axes.contents[0]= axes[0].ctypes.data_as(POINTER(c_float))
+        buf_axes.contents[1]= axes[1].ctypes.data_as(POINTER(c_float))
+        len_axes_x = shape_len(buf_axes[1])
+        len_axes_y = shape_len(buf_axes[0])
+    if origin:
+        origin_x   = pointer(c_float(origin[0]))
+        origin_y   = pointer(c_float(origin[1]))
+    else:
+        origin_x   = pointer(c_float(0))
+        origin_y   = pointer(c_float(0))
+    inochi2d.inDrawableSetMeshData(node, buf_verts, len_verts, buf_uvs, len_uvs, buf_ind, len_ind, buf_axes, len_axes_x, len_axes_y, origin_x, origin_y)
 
 ###################################################################################################
 # Binding
@@ -315,9 +492,6 @@ def inParameterGetBindings(param):
     result = buffer.contents[0:length]
     return result
 
-@i2d_decorate((c_void_p, c_void_p, c_char_p), c_void_p)
-def inParameterGetBinding(param, node, name):
-    return inochi2d.inParameterGetBinding(param, node, name.encode("utf-8"))
 i2d_import("inParameterBindingApply", (c_void_p, c_uint, c_uint, c_float, c_float), None)
 i2d_import("inParameterBindingClear", (c_void_p,), None)
 i2d_import("inParameterBindingSetCurrent", (c_void_p, c_int, c_int), None)
@@ -356,7 +530,8 @@ def inParameterBindingGetFloat(binding, x, y):
     inochi2d.inParameterBindingGetFloat(binding, x, y, ptr)
     return ptr.contents.value
 
-#BindingType inParameterBindingGetValue(InParameterBinding* binding, uint x, uint y, float** values, size_t* length) {
+i2d_import("inParameterBindingSetFloat", (c_void_p, c_uint, c_uint, c_float), None)
+
 @i2d_decorate((c_void_p, c_uint, c_uint, c_void_p, POINTER(c_uint)), c_uint)
 def inParameterBindingGetValue(binding, x, y):
     ptr = c_void_p(0)
@@ -365,27 +540,31 @@ def inParameterBindingGetValue(binding, x, y):
     if type == 0:
         return inParameterBindingGetFloat(binding, x, y)
     elif type == 1:
-        buffer = pointer(cast((c_float * length.contents.value)(), POINTER(c_float)))
+        mem = (c_float * length.contents.value)()
+        buffer = pointer(cast(mem, POINTER(c_float)))
         inochi2d.inParameterBindingGetValue(binding, x, y, buffer, length)
         length = length.contents.value
-        return (buffer.contents, length)
+        data = np.frombuffer(mem, c_float).reshape((int(length / 2), 2))
+        return data
     else:
         return None
 
-#BindingType inParameterBindingGetValue(InParameterBinding* binding, uint x, uint y, float** values, size_t* length) {
-def inParameterBindingGetValueUpdate(binding, x, y, buffer, length):
-    buffer = pointer(buffer)
+def inParameterBindingGetValueUpdate(binding, x, y, data):
+    length = shape_len(data)
+    buffer = pointer(np.ctypes.data_as(data, POINTER(c_float)))
     length = pointer(c_uint(length))
     inochi2d.inParameterBindingGetValue(binding, x, y, buffer, length)
 
-#BindingType inParameterBindingSetValue(InParameterBinding* binding, uint x, uint y, float* values, size_t length) {
 @i2d_decorate((c_void_p, c_uint, c_uint, POINTER(c_float), c_uint), c_uint)
 def inParameterBindingSetValue(binding, x, y, value):
-    if isinstance(value, list):
-        len = len(value)
-        return inochi2d.inParameterBindingSetValue(binding, x, y, value, len)
+    if isinstance(value, np.ndarray):
+        buffer = value.ctypes.data_as(POINTER(c_float))
+        len = shape_len(value)
+        return inochi2d.inParameterBindingSetValue(binding, x, y, buffer, len)
     else:
-        return inochi2d.inParameterBindingSetValue(binding, x, y, [value], 1)
+        return inochi2d.inParameterBindingSetFloat(binding, x, y, value)
+
+i2d_import("inParameterBindingClearValue", (c_void_p, c_uint, c_uint), None)
 
 ###################################################################################################
 # Texture
@@ -414,7 +593,9 @@ i2d_import("inTextureGetTextureId", (c_void_p,), c_uint)
 i2d_import("inTextureDispose", (c_void_p,), None)
 
 @i2d_decorate((c_void_p, POINTER(c_ubyte), c_uint), None)
-def inTextureSetData(texture, buffer, length):
+def inTextureSetData(texture, data):
+    buffer = data.ctypes.data_as(POINTER(c_ubyte))
+    length = shape_len(data)
     inochi2d.inTextureSetData(texture, buffer, length)
 
 @i2d_decorate((c_void_p, c_bool, c_void_p, POINTER(c_uint)), None)
@@ -422,9 +603,51 @@ def inTextureGetTextureData(texture, unmultiply):
     ptr = c_void_p(0)
     length = pointer(c_uint(0));
     inochi2d.inTextureGetTextureData(texture, unmultiply, ptr, length)
-    buffer = pointer(cast((c_ubyte * length.contents.value)(), POINTER(c_ubyte)))
+    mem = (c_ubyte * length.contents.value)()
+    buffer = pointer(cast(mem, POINTER(c_ubyte)))
     inochi2d.inTextureGetTextureData(texture, unmultiply, buffer, length)
     length = length.contents.value
-    return (buffer.contents, length)
+    data = np.frombuffer(mem, c_ubyte)
+    return data
 
 i2d_import("inTextureDestroy", (c_void_p, ), None)
+
+###################################################################################################
+# Dbg
+i2d_import("inGetDbgDrawMeshOutlines", None, c_bool)
+i2d_import("inSetDbgDrawMeshOutlines", (c_bool,), None)
+i2d_import("inGetDbgDrawMeshVertexPoints", None, c_bool)
+i2d_import("inSetDbgDrawMeshVertexPoints", (c_bool,), None)
+i2d_import("inGetDbgDrawMeshOrientation", None, c_bool)
+i2d_import("inSetDbgDrawMeshOrientation", (c_bool,), None)
+i2d_import("inDbgPointsSize", (c_float,), None)
+i2d_import("inDbgLineWidth", (c_float,), None)
+@i2d_decorate((POINTER(c_float), c_uint), None)
+def inDbgSetBuffer(_points):
+    points = _points.ctypes.data_as(POINTER(c_float))    
+    length = shape_len(_points)
+    inochi2d.inDbgSetBuffer(points, length)
+
+#void inDbgSetBuffer(float* _points, size_t point_length, ushort* _indices, size_t ind_len) {
+@i2d_decorate((POINTER(c_float), c_uint, POINTER(c_float), c_uint), None)
+def inDbgSetBufferWithIndices(_points, _indices):
+    points  = _points.ctypes.data_as(POINTER(c_float))
+    indices = _indices.ctypes.data_as(POINTER(c_ushort))
+
+    ptlen  = shape_len(_points)
+    indlen = shape_len(_indices)
+    inochi2d.inDbgSetBufferWithIndices(points, ptlen, indices, indlen)
+
+#void inDbgDrawPoints(float[4] _color, float* _mat4) {
+@i2d_decorate((POINTER(c_float), POINTER(c_float)), None)
+def inDbgDrawPoints(_color, _matrix):
+    color = _color.ctypes.data_as(POINTER(c_float))
+    matrix = _matrix.ctypes.data_as(POINTER(c_float))
+    inochi2d.inDbgDrawPoints(color, matrix)
+
+#void inDbgDrawLines(float[4] _color, float* _mat4) {
+@i2d_decorate((POINTER(c_float), POINTER(c_float)), None)
+def inDbgDrawLines(_color, _matrix):
+    color = _color.ctypes.data_as(POINTER(c_float))
+    matrix = _matrix.ctypes.data_as(POINTER(c_float))
+    inochi2d.inDbgDrawLines(color, matrix)
