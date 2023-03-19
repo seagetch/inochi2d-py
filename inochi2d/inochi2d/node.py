@@ -79,6 +79,8 @@ class Node:
 
     @translation.setter
     def translation(self, value):
+        if isinstance(value, np.ndarray):
+            value = value.tolist()
         return inNodeSetTranslation(self.handle, *value)
 
     @property
@@ -87,6 +89,8 @@ class Node:
 
     @rotation.setter
     def rotation(self, value):
+        if isinstance(value, np.ndarray):
+            value = value.tolist()
         return inNodeSetRotation(self.handle, *value)
 
     @property
@@ -95,4 +99,6 @@ class Node:
 
     @scale.setter
     def scale(self, value):
+        if isinstance(value, np.ndarray):
+            value = value.tolist()
         return inNodeSetScale(self.handle, *value)

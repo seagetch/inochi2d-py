@@ -60,6 +60,10 @@ class Drawable(Node):
         inDrawableDrawMeshPoints(self.handle)
 
     @property
+    def dynamic_matrix(self):
+        return inDrawableGetDynamicMatrix(self.handle)
+
+    @property
     def mesh(self):
         return MeshData(*inDrawableGetMeshData(self.handle))
     

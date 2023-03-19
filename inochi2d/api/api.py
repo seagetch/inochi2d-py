@@ -407,6 +407,13 @@ i2d_import("inDrawableDrawBounds", (c_void_p,), c_bool)
 i2d_import("inDrawableDrawMeshLines", (c_void_p,), c_bool)
 i2d_import("inDrawableDrawMeshPoints", (c_void_p,), c_bool)
 
+@i2d_decorate((c_void_p, POINTER(c_float)), c_bool)
+def inDrawableGetDynamicMatrix(node):
+    mem = (c_float * 16)()
+    buffer = cast(mem, POINTER(c_float))
+    inochi2d.inDrawableGetDynamicMatrix(node, buffer)
+    return np.frombuffer(mem, c_float).reshape((4, 4))
+
 ###################################################################################################
 # MeshData
 
