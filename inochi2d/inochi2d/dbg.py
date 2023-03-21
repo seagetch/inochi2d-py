@@ -36,10 +36,10 @@ class Dbg:
         else:
             inDbgSetBufferWithIndices(points, indices)
 
-    def draw_points(module, color, matrix):
+    def draw_points(module, color, matrix = None):
         inDbgDrawPoints(color, matrix)
 
-    def draw_lines(module, color, matrix):
+    def draw_lines(module, color, matrix = None):
         inDbgDrawLines(color, matrix)
 
 dbg = Dbg()

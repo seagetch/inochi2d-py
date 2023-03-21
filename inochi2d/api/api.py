@@ -297,7 +297,7 @@ def inNodeGetCombinedBounds(node):
     z = pointer(c_float(0))
     w = pointer(c_float(0))
     inochi2d.inNodeGetCombinedBounds(node, x, y, z, w)
-    return (x, y, z, w)
+    return (x.contents.value, y.contents.value, z.contents.value, w.contents.value)
 
 @i2d_decorate((c_void_p, POINTER(c_float), POINTER(c_float), POINTER(c_float), POINTER(c_float)), None)
 def inNodeGetCombinedBoundsWithUpdate(node):
@@ -306,7 +306,7 @@ def inNodeGetCombinedBoundsWithUpdate(node):
     z = pointer(c_float(0))
     w = pointer(c_float(0))
     inochi2d.inNodeGetCombinedBounds(node, x, y, z, w)
-    return (x, y, z, w)
+    return (x.contents.value, y.contents.value, z.contents.value, w.contents.value)
 
 @i2d_decorate((c_void_p, c_char_p), None)
 def inNodeLoadJson(node, data):
@@ -646,15 +646,21 @@ def inDbgSetBufferWithIndices(_points, _indices):
     inochi2d.inDbgSetBufferWithIndices(points, ptlen, indices, indlen)
 
 #void inDbgDrawPoints(float[4] _color, float* _mat4) {
-@i2d_decorate((POINTER(c_float), POINTER(c_float)), None)
+@i2d_decorate((POINTER(c_float), c_void_p), None)
 def inDbgDrawPoints(_color, _matrix):
     color = _color.ctypes.data_as(POINTER(c_float))
-    matrix = _matrix.ctypes.data_as(POINTER(c_float))
-    inochi2d.inDbgDrawPoints(color, matrix)
+    if _matrix is None:
+        inochi2d.inDbgDrawPoints(color, c_void_p(0))
+    else:
+        matrix = _matrix.ctypes.data_as(POINTER(c_float))
+        inochi2d.inDbgDrawPoints(color, matrix)
 
 #void inDbgDrawLines(float[4] _color, float* _mat4) {
-@i2d_decorate((POINTER(c_float), POINTER(c_float)), None)
+@i2d_decorate((POINTER(c_float), c_void_p), None)
 def inDbgDrawLines(_color, _matrix):
     color = _color.ctypes.data_as(POINTER(c_float))
-    matrix = _matrix.ctypes.data_as(POINTER(c_float))
-    inochi2d.inDbgDrawLines(color, matrix)
+    if _matrix is None:
+        inochi2d.inDbgDrawLines(color, c_void_p(0))
+    else:
+        matrix = _matrix.ctypes.data_as(POINTER(c_float))
+        inochi2d.inDbgDrawLines(color, matrix)

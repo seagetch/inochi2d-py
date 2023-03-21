@@ -102,3 +102,7 @@ class Node:
         if isinstance(value, np.ndarray):
             value = value.tolist()
         return inNodeSetScale(self.handle, *value)
+    
+    @property
+    def combined_bounds(self):
+        return inNodeGetCombinedBounds(self.handle)
