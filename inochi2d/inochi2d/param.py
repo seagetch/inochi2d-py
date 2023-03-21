@@ -63,3 +63,6 @@ class Parameter:
 
     def remove_binding(self, binding):
         inParameterRemoveBinding(self.handle, binding)
+
+    def reset(self):
+        inParameterReset(self.handle)

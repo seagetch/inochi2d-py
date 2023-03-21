@@ -234,6 +234,8 @@ def inParameterAddBinding(param, binding):
 def inParameterRemoveBinding(param, binding):
     return inochi2d.inParameterRemoveBinding(param, binding)
 
+i2d_import("inParameterReset", (c_void_p,), None)
+
 ###################################################################################################
 # Node
 i2d_import("inPuppetGetRootNode", (c_void_p,), c_void_p)
