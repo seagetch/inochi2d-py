@@ -436,18 +436,24 @@ def inDrawableGetMeshData(node):
     origin_x   = pointer(c_float(0))
     origin_y   = pointer(c_float(0))
     inochi2d.inDrawableGetMeshData(node, ptr_verts, len_verts, ptr_uvs, len_uvs, ptr_ind, len_ind, ptr_axes, len_axes_x, len_axes_y, origin_x, origin_y)
-    buf_verts  = pointer(cast((c_float  * len_verts.contents.value)(), POINTER(c_float)))
-    buf_uvs    = pointer(cast((c_float  * len_uvs.contents.value)(), POINTER(c_float)))
-    buf_ind    = pointer(cast((c_ushort * len_ind.contents.value)(), POINTER(c_ushort)))
-    buf_axes   = pointer(cast((c_void_p * 2)(), POINTER(c_void_p)))
-    buf_axes.contents[0]= pointer(cast((c_float  * len_axes_y.contents.value)(), POINTER(c_float)))    
-    buf_axes.contents[1]= pointer(cast((c_float  * len_axes_x.contents.value)(), POINTER(c_float)))    
+    mem_verts  = (c_float  * len_verts.contents.value)()
+    buf_verts  = pointer(cast(mem_verts, POINTER(c_float)))
+    mem_uvs    = (c_float  * len_uvs.contents.value)()
+    buf_uvs    = pointer(cast(mem_uvs, POINTER(c_float)))
+    mem_ind    = (c_ushort * len_ind.contents.value)()
+    buf_ind    = pointer(cast(mem_ind, POINTER(c_ushort)))
+    mem_axes   = (c_void_p * 2)()
+    buf_axes   = pointer(cast(mem_axes, POINTER(c_void_p)))
+    mem_axis_y = (c_float  * len_axes_y.contents.value)()    
+    mem_axis_x = (c_float  * len_axes_x.contents.value)()    
+    buf_axes.contents[0]= cast(mem_axis_y, c_void_p)
+    buf_axes.contents[1]= cast(mem_axis_x, c_void_p)
     inochi2d.inDrawableGetMeshData(node, buf_verts, len_verts, buf_uvs, len_uvs, buf_ind, len_ind, buf_axes, len_axes_x, len_axes_y, origin_x, origin_y)
-    ret_verts  = np.ctypeslib.as_array(buf_verts.contents,  (len_verts,)).reshape((len_verts / 2, 2))
-    ret_uvs    = np.ctypeslib.as_array(buf_uvs.contents,    (len_uvs,)).reshape((len_uvs / 2, 2))
-    ret_ind    = np.ctypeslib.as_array(buf_ind.contents,    (len_ind,))
-    ret_axes   = [np.ctypeslib.as_array(buf_axes.contens[0], (len_axes_y)), 
-                  np.ctypeslib.as_array(buf_axes.contents[1], (len_axes_x))]
+    ret_verts  = np.ctypeslib.as_array(mem_verts).reshape((len_verts.contents.value // 2, 2))
+    ret_uvs    = np.ctypeslib.as_array(mem_uvs).reshape((len_uvs.contents.value // 2, 2))
+    ret_ind    = np.ctypeslib.as_array(mem_ind).reshape((int(len_ind.contents.value // 3), 3))
+    ret_axes   = [np.ctypeslib.as_array(mem_axis_y), 
+                  np.ctypeslib.as_array(mem_axis_x)]
     return [ret_verts, ret_uvs, ret_ind, ret_axes, (origin_x, origin_y)]
 
 @i2d_decorate((c_void_p, c_void_p, c_uint,
