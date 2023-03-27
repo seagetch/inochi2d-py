@@ -435,7 +435,9 @@ def inDrawableGetMeshData(node):
     len_axes_y = pointer(c_uint(0))
     origin_x   = pointer(c_float(0))
     origin_y   = pointer(c_float(0))
-    inochi2d.inDrawableGetMeshData(node, ptr_verts, len_verts, ptr_uvs, len_uvs, ptr_ind, len_ind, ptr_axes, len_axes_x, len_axes_y, origin_x, origin_y)
+    succeeded  = inochi2d.inDrawableGetMeshData(node, ptr_verts, len_verts, ptr_uvs, len_uvs, ptr_ind, len_ind, ptr_axes, len_axes_x, len_axes_y, origin_x, origin_y)
+    if not succeeded:
+        return [None, None, None, None, (None, None)]
     mem_verts  = (c_float  * len_verts.contents.value)()
     buf_verts  = pointer(cast(mem_verts, POINTER(c_float)))
     mem_uvs    = (c_float  * len_uvs.contents.value)()
