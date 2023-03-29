@@ -417,6 +417,21 @@ def inDrawableGetDynamicMatrix(node):
     return np.frombuffer(mem, c_float).reshape((4, 4))
 
 ###################################################################################################
+# Part
+@i2d_decorate((c_void_p, c_void_p, POINTER(c_uint)), c_bool)
+def inPartGetTextures(node):
+    ptr = c_void_p(0)
+    length = pointer(c_uint(0))
+    result = inochi2d.inPartGetTextures(node, ptr, length)
+    if not result:
+        return None
+    buffer = pointer(cast((c_void_p * length.contents.value)(), POINTER(c_void_p)))
+    inochi2d.inPartGetTextures(node, buffer, length)
+    length = length.contents.value
+    result = buffer.contents[0:length]
+    return result
+
+###################################################################################################
 # MeshData
 
 @i2d_decorate((c_void_p, c_void_p, POINTER(c_uint),
@@ -456,7 +471,7 @@ def inDrawableGetMeshData(node):
     ret_ind    = np.ctypeslib.as_array(mem_ind).reshape((int(len_ind.contents.value // 3), 3))
     ret_axes   = [np.ctypeslib.as_array(mem_axis_y), 
                   np.ctypeslib.as_array(mem_axis_x)]
-    return [ret_verts, ret_uvs, ret_ind, ret_axes, (origin_x, origin_y)]
+    return [ret_verts, ret_uvs, ret_ind, ret_axes, (origin_x.contents.value, origin_y.contents.value)]
 
 @i2d_decorate((c_void_p, c_void_p, c_uint,
                c_void_p, c_uint, c_void_p, c_uint,
@@ -469,31 +484,35 @@ def inDrawableSetMeshData(node, verts, uvs, ind, axes, origin):
     else:
         buf_verts  = c_void_p(0)
         len_verts  = 0
-    if uvs:
+    if uvs is not None:
         buf_uvs    = uvs.ctypes.data_as(POINTER(c_float))
         len_uvs    = shape_len(uvs)
     else:
         buf_uvs    = c_void_p(0)
         len_uvs    = 0
-    if ind:
+    if ind is not None:
         buf_ind    = ind.ctypes.data_as(POINTER(c_ushort))
         len_ind    = shape_len(ind)
     else:
         buf_ind    = c_void_p(0)
         len_ind    = 0
-    if axes:
+    if axes is not None:
         buf_axes   = pointer(cast((c_void_p * 2)(), POINTER(c_void_p)))
-        buf_axes.contents[0]= axes[0].ctypes.data_as(POINTER(c_float))
-        buf_axes.contents[1]= axes[1].ctypes.data_as(POINTER(c_float))
-        len_axes_x = shape_len(buf_axes[1])
-        len_axes_y = shape_len(buf_axes[0])
-    if origin:
+        buf_axes.contents[0]= axes[0].ctypes.data_as(c_void_p)
+        buf_axes.contents[1]= axes[1].ctypes.data_as(c_void_p)
+        len_axes_x = shape_len(axes[1])
+        len_axes_y = shape_len(axes[0])
+    if origin is not None:
         origin_x   = pointer(c_float(origin[0]))
         origin_y   = pointer(c_float(origin[1]))
     else:
         origin_x   = pointer(c_float(0))
         origin_y   = pointer(c_float(0))
-    inochi2d.inDrawableSetMeshData(node, buf_verts, len_verts, buf_uvs, len_uvs, buf_ind, len_ind, buf_axes, len_axes_x, len_axes_y, origin_x, origin_y)
+    return inochi2d.inDrawableSetMeshData(node, buf_verts, len_verts, 
+                                          buf_uvs, len_uvs, 
+                                          buf_ind, len_ind, 
+                                          buf_axes, len_axes_x, len_axes_y, 
+                                          origin_x, origin_y)
 
 ###################################################################################################
 # Binding

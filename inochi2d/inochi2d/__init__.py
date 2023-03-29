@@ -7,6 +7,7 @@ from .viewport import *
 from .param    import *
 from .node     import *
 from .drawable import *
+from .part     import *
 from .binding  import *
 from .texture  import *
 from .dbg      import *

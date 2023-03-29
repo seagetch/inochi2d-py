@@ -19,7 +19,7 @@ class Texture:
     
     @property
     def width(self):
-        return inTextureGetWidth(self.hendle)
+        return inTextureGetWidth(self.handle)
     
     @property
     def height(self):
