@@ -15,6 +15,9 @@ class MeshData:
         self.axes    = axes
         self.origin  = origin
 
+    def is_empty(self):
+        return self.verts is None
+
 class Drawable(Node):
     def __init__(self, src):
         if isinstance(src, Node):
